@@ -78,6 +78,9 @@ export default function Reports() {
   }, [])
 
   const filteredReports = reports.filter((report) => selectedType === 'all' || report.type === selectedType)
+  
+  // Check if any report with status 'ready' exists
+  const hasReadyReport = reports.some(report => report.status === 'ready')
 
   return (
     <div className="min-h-screen bg-charcoal-dark text-silver p-6 md:p-12 space-y-12">
@@ -104,10 +107,19 @@ export default function Reports() {
             >
                <ReportIcon icon={Refresh01Icon} className="block" />
             </button>
-            <button
-               onClick={() => window.open(`${API_BASE}/task/latest/report/pdf`, '_blank')} // Placeholder for latest report
-               className="bg-silver-bright border-4 border-black p-4 text-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all"
-               title="Download Latest Briefing"
+            <button 
+               onClick={() => {
+                  if (hasReadyReport) {
+                     window.open(`${API_BASE}/task/latest/report/pdf`, '_blank')
+                  }
+               }}
+               disabled={!hasReadyReport}
+               className={`bg-silver-bright border-4 border-black p-4 text-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all ${
+                  hasReadyReport 
+                     ? 'hover:shadow-none hover:translate-x-1 hover:translate-y-1' 
+                     : 'opacity-50 cursor-not-allowed'
+               }`}
+               title={hasReadyReport ? "Download Latest Briefing" : "No ready report available"}
             >
                <ReportIcon icon={Pdf02Icon} className="block" />
             </button>
@@ -199,87 +211,87 @@ export default function Reports() {
                                 </div>
                             </div>
                         ) : (
-                                    filteredReports.map((report) => (
-                                        <motion.div
-                                            key={report.id}
-                                            variants={itemVariants}
-                                            className="group bg-charcoal border-4 border-black p-10 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[14px_14px_0px_0px_rgba(0,0,0,1)] transition-all relative overflow-hidden"
-                                        >
-                              {/* Status Top Bar */}
-                              <div className={`absolute top-0 left-0 h-2 transition-all duration-500 ${
-                                  report.status === 'ready' ? 'bg-rag-green w-full' :
-                                  report.status === 'failed' ? 'bg-rag-red w-full' : 'bg-rag-amber w-1/2 animate-pulse'
-                              }`}></div>
+                                     filteredReports.map((report) => (
+                                         <motion.div
+                                             key={report.id}
+                                             variants={itemVariants}
+                                             className="group bg-charcoal border-4 border-black p-10 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[14px_14px_0px_0px_rgba(0,0,0,1)] transition-all relative overflow-hidden"
+                                         >
+                                             {/* Status Top Bar */}
+                                             <div className={`absolute top-0 left-0 h-2 transition-all duration-500 ${
+                                                 report.status === 'ready' ? 'bg-rag-green w-full' :
+                                                 report.status === 'failed' ? 'bg-rag-red w-full' : 'bg-rag-amber w-1/2 animate-pulse'
+                                             }`}></div>
 
-                              <div className="space-y-8 relative z-10">
-                                  <div className="flex justify-between items-start">
-                                      <span className={`px-2 py-0.5 text-[9px] font-black uppercase italic border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
-                                          report.type === 'executive' ? 'bg-silver-bright text-black' :
-                                          report.type === 'compliance' ? 'bg-rag-green text-black' :
-                                          'bg-rag-blue text-black'
-                                      }`}>
-                                          {report.type}_TYPE
-                                      </span>
-                                      <ReportIcon icon={File01Icon} size={24} className="text-silver/10 group-hover:text-silver-bright transition-colors" />
-                                  </div>
+                                             <div className="space-y-8 relative z-10">
+                                                 <div className="flex justify-between items-start">
+                                                     <span className={`px-2 py-0.5 text-[9px] font-black uppercase italic border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
+                                                         report.type === 'executive' ? 'bg-silver-bright text-black' :
+                                                         report.type === 'compliance' ? 'bg-rag-green text-black' :
+                                                         'bg-rag-blue text-black'
+                                                     }`}>
+                                                         {report.type}_TYPE
+                                                     </span>
+                                                     <ReportIcon icon={File01Icon} size={24} className="text-silver/10 group-hover:text-silver-bright transition-colors" />
+                                                 </div>
 
-                                  <div>
-                                      <h3 className="text-3xl font-black text-silver-bright uppercase tracking-tighter italic leading-tight group-hover:text-rag-red transition-colors font-mono">
-                                          {report.name}
-                                      </h3>
-                                      <div className="w-12 h-1 bg-silver-bright/10 mt-6 group-hover:w-full group-hover:bg-rag-red/30 transition-all duration-700"></div>
-                                  </div>
+                                                 <div>
+                                                     <h3 className="text-3xl font-black text-silver-bright uppercase tracking-tighter italic leading-tight group-hover:text-rag-red transition-colors font-mono">
+                                                         {report.name}
+                                                     </h3>
+                                                     <div className="w-12 h-1 bg-silver-bright/10 mt-6 group-hover:w-full group-hover:bg-rag-red/30 transition-all duration-700"></div>
+                                                 </div>
 
-                                  <div className="grid grid-cols-3 gap-6 py-6 border-y-2 border-black border-dashed">
-                                      <div className="space-y-1">
-                                          <span className="text-[8px] font-black text-silver/20 uppercase tracking-widest italic block">Findings</span>
-                                          <span className="text-xs font-black font-mono text-silver-bright">{report.findings.toString().padStart(3, '0')}</span>
-                                      </div>
-                                      <div className="space-y-1 text-center">
-                                          <span className="text-[8px] font-black text-silver/20 uppercase tracking-widest italic block">Assets</span>
-                                          <span className="text-xs font-black font-mono text-silver-bright">{report.assets.toString().padStart(3, '0')}</span>
-                                      </div>
-                                      <div className="space-y-1 text-right">
-                                          <span className="text-[8px] font-black text-silver/20 uppercase tracking-widest italic block">Pages</span>
-                                          <span className="text-xs font-black font-mono text-silver-bright">{report.pages.toString().padStart(3, '0')}</span>
-                                      </div>
-                                  </div>
+                                                 <div className="grid grid-cols-3 gap-6 py-6 border-y-2 border-black border-dashed">
+                                                     <div className="space-y-1">
+                                                         <span className="text-[8px] font-black text-silver/20 uppercase tracking-widest italic block">Findings</span>
+                                                         <span className="text-xs font-black font-mono text-silver-bright">{report.findings.toString().padStart(3, '0')}</span>
+                                                     </div>
+                                                     <div className="space-y-1 text-center">
+                                                         <span className="text-[8px] font-black text-silver/20 uppercase tracking-widest italic block">Assets</span>
+                                                         <span className="text-xs font-black font-mono text-silver-bright">{report.assets.toString().padStart(3, '0')}</span>
+                                                     </div>
+                                                     <div className="space-y-1 text-right">
+                                                         <span className="text-[8px] font-black text-silver/20 uppercase tracking-widest italic block">Pages</span>
+                                                         <span className="text-xs font-black font-mono text-silver-bright">{report.pages.toString().padStart(3, '0')}</span>
+                                                     </div>
+                                                 </div>
 
-                                  <div className="flex justify-between items-end pt-2">
-                                      <div className="space-y-1">
-                                          <p className="text-[8px] font-black uppercase text-silver/20 tracking-[0.3em] italic leading-none">TIMESTAMP</p>
-                                          <p className="text-[10px] font-mono text-silver-bright uppercase font-black">{formatDateLong(report.generated_at)}</p>
-                                      </div>
-                                      <div className="flex gap-4">
-                                          <button
-                                              onClick={() => navigate(`/task/${report.task_id}`)}
-                                              className="bg-charcoal-dark border-4 border-black p-3 text-silver/20 group-hover:text-silver-bright group-hover:bg-black transition-all"
-                                              title="View Briefing"
-                                          >
-                                              <ReportIcon icon={ScanEyeIcon} size={18} />
-                                          </button>
-                                          <button
-                                              onClick={() => window.open(`${API_BASE}/task/${report.task_id}/report/pdf`, '_blank')}
-                                              className="bg-charcoal-dark border-4 border-black p-3 text-silver/20 group-hover:text-silver-bright group-hover:bg-black transition-all"
-                                              title="Download PDF"
-                                          >
-                                              <ReportIcon icon={Download01Icon} size={18} />
-                                          </button>
-                                      </div>
-                                  </div>
-                              </div>
+                                                 <div className="flex justify-between items-end pt-2">
+                                                     <div className="space-y-1">
+                                                         <p className="text-[8px] font-black uppercase text-silver/20 tracking-[0.3em] italic leading-none">TIMESTAMP</p>
+                                                         <p className="text-[10px] font-mono text-silver-bright uppercase font-black">{formatDateLong(report.generated_at)}</p>
+                                                     </div>
+                                                     <div className="flex gap-4">
+                                                         <button
+                                                             onClick={() => navigate(`/task/${report.task_id}`)}
+                                                             className="bg-charcoal-dark border-4 border-black p-3 text-silver/20 group-hover:text-silver-bright group-hover:bg-black transition-all"
+                                                             title="View Briefing"
+                                                         >
+                                                             <ReportIcon icon={ScanEyeIcon} size={18} />
+                                                         </button>
+                                                         <button
+                                                             onClick={() => window.open(`${API_BASE}/task/${report.task_id}/report/pdf`, '_blank')}
+                                                             className="bg-charcoal-dark border-4 border-black p-3 text-silver/20 group-hover:text-silver-bright group-hover:bg-black transition-all"
+                                                             title="Download PDF"
+                                                         >
+                                                             <ReportIcon icon={Download01Icon} size={18} />
+                                                         </button>
+                                                     </div>
+                                                 </div>
+                                             </div>
 
-                               {/* Background Hover Icon */}
-                               <div className="absolute -right-12 -bottom-12 opacity-0 group-hover:opacity-[0.03] transition-all duration-1000 transform scale-150 rotate-12 pointer-events-none">
-                                  <div className="text-silver-bright">
-                                      <ReportIcon
-                                        icon={report.type === 'executive' ? Analytics02Icon : report.type === 'compliance' ? UserShield02Icon : ShieldUserIcon}
-                                        size={200}
-                                      />
-                                  </div>
-                               </div>
-                               </motion.div>
-                            ))
+                                              {/* Background Hover Icon */}
+                                              <div className="absolute -right-12 -bottom-12 opacity-0 group-hover:opacity-[0.03] transition-all duration-1000 transform scale-150 rotate-12 pointer-events-none">
+                                                 <div className="text-silver-bright">
+                                                     <ReportIcon
+                                                       icon={report.type === 'executive' ? Analytics02Icon : report.type === 'compliance' ? UserShield02Icon : ShieldUserIcon}
+                                                       size={200}
+                                                     />
+                                                 </div>
+                                              </div>
+                                         </motion.div>
+                                     ))
                         )}
 
                       {reports.length === 0 && (
