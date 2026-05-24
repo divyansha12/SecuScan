@@ -35,13 +35,13 @@ venv_tests/
 *.swo
 *~
 .DS_Store
-
 # Testing
 .pytest_cache/
 .coverage
 htmlcov/
 *.cover
 .hypothesis/
+benchmark_results.json
 
 # Database
 *.db
