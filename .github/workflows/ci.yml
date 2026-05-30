@@ -26,6 +26,8 @@ jobs:
         run: git fetch origin "${{ github.base_ref }}" --depth=1
       - name: Determine test selection
         id: filter
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: python3 scripts/select_tests.py
 
   formatting-hygiene:

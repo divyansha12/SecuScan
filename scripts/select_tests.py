@@ -28,9 +28,24 @@ def get_changed_files():
     return []
 
 
+def get_event_name():
+    """
+    Get the GitHub event name (push or pull_request).
+    Defaults to 'push' for local/unknown environments.
+    """
+    return os.environ.get("GITHUB_EVENT_NAME", "push")
+
+
 def classify_file(filepath):
     """
     Classifies a file path into a logical CI category.
+    
+    Categories:
+    - DOCS: Documentation files (.md) - safe to skip for selective testing
+    - FRONTEND: Frontend code and tests
+    - PLUGINS: Plugin definitions
+    - BACKEND: Backend code, tests, and Python configs
+    - SHARED_OR_CONFIG: Shared configuration and CI workflow files - always requires full suite
     """
     filepath = filepath.strip()
     if not filepath:
@@ -40,6 +55,7 @@ def classify_file(filepath):
     filepath = filepath.replace("\\", "/")
 
     # Check for docs first (both .md files anywhere and anything in docs/ directory)
+    # SAFE to skip: documentation cannot affect code behavior
     if filepath.endswith(".md") or filepath.startswith("docs/"):
         return "DOCS"
 
@@ -64,25 +80,51 @@ def classify_file(filepath):
         return "BACKEND"
 
     # Any other files (root scripts, github workflows, config files)
+    # UNSAFE to skip: these files affect CI behavior and shared configuration
     return "SHARED_OR_CONFIG"
 
 
-def select_tests(files):
+def select_tests(files, event_name="push"):
     """
-    Decides which test suites to run based on a list of changed files.
-    Returns: (run_backend, run_frontend)
+    Decides which test suites to run based on changed files and event type.
+    
+    Args:
+        files: List of changed file paths
+        event_name: GitHub event type ('pull_request' or 'push')
+    
+    Returns:
+        Tuple of (run_backend: bool, run_frontend: bool)
+    
+    Logic:
+    ------
+    For PULL REQUESTS (PR checks are required for merge):
+        - Always run full suite to ensure required checks pass
+        - This prevents required checks from being marked "skipped" in branch protection
+        - PR must be thoroughly tested before merge
+    
+    For PUSH events (push checks are informational):
+        - Use selective skipping to save CI time on main/develop
+        - Skip tests for docs-only changes
+        - Still run full suite for shared config changes
     """
     if not files:
-        # Fall back to running the full suite to be safe
+        # Empty file list: fall back to running full suite to be safe
         return True, True
 
+    # CRITICAL: For pull requests, always run full suite
+    # This ensures branch protection required checks pass (not skipped)
+    if event_name == "pull_request":
+        return True, True
+
+    # For push events, use selective skipping to optimize CI time
     categories = {classify_file(f) for f in files}
 
-    # If any changed file is SHARED_OR_CONFIG, run the full suite
+    # If any changed file is SHARED_OR_CONFIG, run full suite
+    # These files affect CI behavior and must be thoroughly tested
     if "SHARED_OR_CONFIG" in categories:
         return True, True
 
-    # If there are both BACKEND and FRONTEND changes, run the full suite
+    # If there are both BACKEND and FRONTEND changes, run full suite
     if "BACKEND" in categories and "FRONTEND" in categories:
         return True, True
 
@@ -122,12 +164,17 @@ def write_outputs(run_backend, run_frontend):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Determine which tests to run based on changed files."
+        description="Determine which tests to run based on changed files and event type."
     )
     parser.add_argument(
         "--files",
         nargs="*",
         help="List of changed files. If not specified, git diff will be used to detect changes.",
+    )
+    parser.add_argument(
+        "--event-name",
+        default=None,
+        help="GitHub event name (pull_request or push). If not specified, reads from GITHUB_EVENT_NAME env var.",
     )
     args = parser.parse_args()
 
@@ -137,7 +184,10 @@ def main():
         files = get_changed_files()
         print(f"Detected changed files: {files}")
 
-    run_backend, run_frontend = select_tests(files)
+    event_name = args.event_name or get_event_name()
+    print(f"Event type: {event_name}")
+
+    run_backend, run_frontend = select_tests(files, event_name=event_name)
     write_outputs(run_backend, run_frontend)
 
 
